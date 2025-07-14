@@ -13,13 +13,16 @@ const ChatRoom = () => {
   const [message, setMessage] = useState("");
   const [chatLog, setChatLog] = useState([]);
   const [privateChats, setPrivateChats] = useState({});
-  const [groups, setGroups] = useState([]); // [{name, members}]
+  const [groups, setGroups] = useState([]);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [groupChats, setGroupChats] = useState({});
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupMembers, setNewGroupMembers] = useState([]);
+  const [showGroupForm, setShowGroupForm] = useState(false);
   const messagesEndRef = useRef(null);
+  const [selectedGroupMembers, setSelectedGroupMembers] = useState([]);
 
+  // Prompt for username
   useEffect(() => {
     if (!username || username.trim() === "" || username === "null") {
       let name = "";
@@ -31,19 +34,27 @@ const ChatRoom = () => {
     }
   }, [username]);
 
+  // Send join event
   useEffect(() => {
     if (username) {
       socket.emit("join", username);
     }
   }, [username]);
 
+  // Listen to server events
   useEffect(() => {
     socket.on("users_list", (userList) => {
       setUsers(userList.filter((u) => u !== username));
     });
+
     socket.on("groups_list", (serverGroups) => {
       setGroups(serverGroups);
     });
+
+    socket.on("receive_message_history", (msgs) => {
+      setChatLog(msgs);
+    });
+
     socket.on("receive_message", (data) => {
       if (data.group) {
         setGroupChats((prev) => {
@@ -57,41 +68,95 @@ const ChatRoom = () => {
         setPrivateChats((prev) => {
           const updated = { ...prev };
           if (!updated[chatKey]) updated[chatKey] = [];
-          updated[chatKey] = [...updated[chatKey], data];
+          // Prevent duplicate message if already optimistically added
+          if (
+            updated[chatKey].length === 0 ||
+            updated[chatKey][updated[chatKey].length - 1].message !==
+              data.message ||
+            updated[chatKey][updated[chatKey].length - 1].sender !== data.sender
+          ) {
+            updated[chatKey] = [...updated[chatKey], data];
+          }
           return updated;
         });
       } else {
-        setChatLog((prev) => [...prev, data]);
+        setChatLog((prev) => {
+          // Prevent duplicate message if already optimistically added
+          if (
+            prev.length === 0 ||
+            prev[prev.length - 1].message !== data.message ||
+            prev[prev.length - 1].sender !== data.sender
+          ) {
+            return [...prev, data];
+          }
+          return prev;
+        });
       }
     });
+
     return () => {
       socket.off("users_list");
       socket.off("groups_list");
+      socket.off("receive_message_history");
       socket.off("receive_message");
     };
   }, [username]);
 
+  // Load chat histories
+  useEffect(() => {
+    socket.on("receive_private_message_history", (msgs) => {
+      const chats = {};
+      msgs.forEach((msg) => {
+        const chatKey = msg.sender === username ? msg.to : msg.sender;
+        if (!chats[chatKey]) chats[chatKey] = [];
+        chats[chatKey].push(msg);
+      });
+      setPrivateChats(chats);
+    });
+
+    socket.on("receive_group_message_history", ({ group, messages }) => {
+      setGroupChats((prev) => ({ ...prev, [group]: messages }));
+    });
+
+    return () => {
+      socket.off("receive_private_message_history");
+      socket.off("receive_group_message_history");
+    };
+  }, [username]);
+
+  // Auto scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatLog, privateChats, groupChats, selectedUser, selectedGroup]);
 
+  // Send message
   const sendMessage = () => {
     if (message.trim() !== "") {
-      if (selectedGroup) {           //send message to group
-        const newMsg = { message, sender: username, group: selectedGroup };
-        socket.emit("send_message", newMsg);
-      } else if (selectedUser) {    //send message to private user
-        const newMsg = { message, sender: username, to: selectedUser };
-        socket.emit("send_message", newMsg);
-      } else {                      //send message to public chat     
-        const newMsg = { message, sender: username, to: "All" };
-        socket.emit("send_message", newMsg);
+      let msgData;
+      if (selectedGroup) {
+        msgData = { message, sender: username, group: selectedGroup };
+        socket.emit("send_message", msgData);
+      } else if (selectedUser) {
+        msgData = { message, sender: username, to: selectedUser };
+        // Optimistically add message for sender
+        setPrivateChats((prev) => {
+          const updated = { ...prev };
+          const chatKey = selectedUser;
+          if (!updated[chatKey]) updated[chatKey] = [];
+          updated[chatKey] = [...updated[chatKey], msgData];
+          return updated;
+        });
+        socket.emit("send_message", msgData);
+      } else {
+        msgData = { message, sender: username, to: "All" };
+        setChatLog((prev) => [...prev, msgData]);
+        socket.emit("send_message", msgData);
       }
       setMessage("");
     }
   };
 
-  // Group creation
+  // Create group
   const handleCreateGroup = () => {
     if (!newGroupName.trim() || newGroupMembers.length === 0) return;
     socket.emit("create_group", {
@@ -100,9 +165,9 @@ const ChatRoom = () => {
     });
     setNewGroupName("");
     setNewGroupMembers([]);
+    setShowGroupForm(false);
   };
 
-  // UI
   return (
     <div className="wa-container">
       <div className="wa-sidebar">
@@ -121,7 +186,8 @@ const ChatRoom = () => {
           >
             <span>Public Chat</span>
           </div>
-          {users.map((user) => (
+         <div>
+           {users.map((user) => (
             <div
               key={user}
               className={`wa-user ${selectedUser === user ? "active" : ""}`}
@@ -133,8 +199,18 @@ const ChatRoom = () => {
               <span>{user}</span>
             </div>
           ))}
+         </div>
           <div className="wa-group-section">
-            <div className="wa-group-title">Groups</div>
+            <div className="wa-group-title">
+              <span>Groups</span>
+              <button
+                className="plus-button"
+                onClick={() => setShowGroupForm(!showGroupForm)}
+                title="Create Group"
+              >
+                +
+              </button>
+            </div>
             {groups
               .filter((g) => g.members.includes(username))
               .map((group) => (
@@ -146,46 +222,69 @@ const ChatRoom = () => {
                   onClick={() => {
                     setSelectedGroup(group.name);
                     setSelectedUser(null);
+                    setSelectedGroupMembers(group.members); // set members here
                   }}
                 >
                   <span>#{group.name}</span>
                 </div>
               ))}
-            <div className="wa-group-create">
-              <input
-                type="text"
-                placeholder="Group name"
-                value={newGroupName}
-                onChange={(e) => setNewGroupName(e.target.value)}
-              />
-              <select
-                multiple
-                value={newGroupMembers}
-                onChange={(e) =>
-                  setNewGroupMembers(
-                    Array.from(e.target.selectedOptions, (opt) => opt.value)
-                  )
-                }
-              >
-                {users.map((u) => (
-                  <option key={u} value={u}>
-                    {u}
-                  </option>
-                ))}
-              </select>
-              <button onClick={handleCreateGroup}>Create</button>
-            </div>
+
+            {showGroupForm && (
+              <div className="wa-group-create">
+                <input
+                  type="text"
+                  placeholder="Group name"
+                  value={newGroupName}
+                  onChange={(e) => setNewGroupName(e.target.value)}
+                />
+                <div className="checkbox-list">
+                  {users.map((u) => (
+                    <label key={u} className="checkbox-item">
+                      <input
+                        type="checkbox"
+                        value={u}
+                        checked={newGroupMembers.includes(u)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setNewGroupMembers([...newGroupMembers, u]);
+                          } else {
+                            setNewGroupMembers(
+                              newGroupMembers.filter((name) => name !== u)
+                            );
+                          }
+                        }}
+                      />
+                      {u}
+                    </label>
+                  ))}
+                </div>
+                <button onClick={() => setShowGroupForm(false)}>Close</button>
+                <button onClick={handleCreateGroup}>Create</button>
+              </div>
+            )}
           </div>
         </div>
       </div>
       <div className="wa-chat">
         <div className="chat-title">
-          {selectedGroup
-            ? `Group: #${selectedGroup}`
-            : selectedUser
-            ? `Chat with ${selectedUser}`
-            : "🗨️ Public Chat Room"}
+          {selectedGroup ? (
+            <div>
+              <div>Group: #{selectedGroup}</div>
+              <div className="group-members">
+                Members: {selectedGroupMembers.join(", ")}
+              </div>
+            </div>
+          ) : selectedUser ? (
+          <>
+            <div style={{ display: "flex", alignItems: "center" }}>
+              Chat with : <h4>{selectedUser}</h4>
+            </div>
+          </>
+          ) : (
+            "🗨️ Public Chat Room"
+          )}
         </div>
+
         <div className="chat-box">
           {(selectedGroup
             ? groupChats[selectedGroup] || []

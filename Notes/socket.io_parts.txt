@@ -4,3 +4,4 @@
 4.on    :=>on for receive messages.
 5.Broadcast :=>Broadcast for send messages to all users, only sender not see him message.
 6.join   :=>for join people on room.(basically use for group chat).
+7.to :=>for send messages to particular user or particular room/group.
