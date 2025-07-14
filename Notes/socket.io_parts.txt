@@ -1,0 +1,6 @@
+1.io    :=>io is simply use for publicly send/receive messages.
+2.socket:=>socket is like user for send/receive messages to particular user.
+3.emit  :=>emit for send messages.
+4.on    :=>on for receive messages.
+5.Broadcast :=>Broadcast for send messages to all users, only sender not see him message.
+6.join   :=>for join people on room.(basically use for group chat).

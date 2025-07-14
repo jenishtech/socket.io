@@ -1,0 +1,154 @@
+/* WhatsApp-like layout */
+.wa-container {
+  display: flex;
+  height: 90vh;
+  max-width: 900px;
+  margin: 2rem auto;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+.wa-sidebar {
+  width: 220px;
+  background: #f0f0f0;
+  border-right: 1px solid #ddd;
+  display: flex;
+  flex-direction: column;
+}
+.wa-profile {
+  padding: 1rem;
+  background: #4a90e2;
+  color: #fff;
+  font-weight: bold;
+  text-align: center;
+}
+.wa-users {
+  flex: 1;
+  overflow-y: auto;
+}
+.wa-user {
+  padding: 0.8rem 1rem;
+  cursor: pointer;
+  border-bottom: 1px solid #e0e0e0;
+  transition: background 0.2s;
+}
+.wa-user.active, .wa-user:hover {
+  background: #e6f0fa;
+  font-weight: bold;
+}
+.wa-chat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.chat-title {
+  padding: 1rem;
+  border-bottom: 1px solid #eee;
+  font-size: 1.2rem;
+  background: #fafbfc;
+  text-align: left;
+}
+.chat-box {
+  flex: 1;
+  padding: 1rem;
+  overflow-y: auto;
+  background: #f9f9f9;
+  display: flex;
+  flex-direction: column;
+}
+.message-wrapper {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.5rem;
+}
+.own {
+  align-items: flex-end;
+}
+.other {
+  align-items: flex-start;
+}
+.message-bubble {
+  background-color: #4a90e2;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  max-width: 70%;
+  word-break: break-word;
+}
+.own .message-bubble {
+  background-color: #4a90e2;
+}
+.other .message-bubble {
+  background-color: #ccc;
+  color: black;
+}
+.message-sender {
+  font-size: 0.75rem;
+  margin-top: 0.2rem;
+  color: #666;
+}
+.input-box {
+  display: flex;
+  padding: 1rem;
+  border-top: 1px solid #eee;
+  background: #fafbfc;
+}
+.chat-input {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  border: 1px solid #ccc;
+}
+.send-button {
+  margin-left: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  background: #4a90e2;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+.private-label {
+  font-size: 0.7rem;
+  color: #e67e22;
+  margin-right: 0.5rem;
+}
+
+
+
+/* ...existing code... */
+.wa-group-section {
+  margin-top: 1rem;
+  padding: 0.5rem;
+  border-top: 1px solid #ddd;
+}
+.wa-group-title {
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+.wa-group {
+  color: #4a90e2;
+}
+.wa-group-create {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.wa-group-create input,
+.wa-group-create select {
+  padding: 0.3rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+.wa-group-create button {
+  background: #4a90e2;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.3rem 0.7rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+/* ...existing code... */
