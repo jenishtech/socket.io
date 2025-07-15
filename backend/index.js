@@ -22,7 +22,7 @@ const Message = require('./models/Message');
 
 
 const io = new Server(server, {
-  cors: { origin: "http://localhost:5173", methods: ["GET", "POST"] }
+  cors: { origin: process.env.CLIENT_URL, methods: ["GET", "POST"] }
 });
 
 let users = {}; // still keep in-memory socket.id → username
@@ -120,4 +120,4 @@ io.on("connection", (socket) => {
 const authRoutes = require('./routes/auth'); 
 app.use('/api/auth', authRoutes);
 
-server.listen(5000, () => console.log('Server running on http://localhost:5000'));
+server.listen(process.env.PORT, () => console.log(`Server running on port ${process.env.PORT}`));

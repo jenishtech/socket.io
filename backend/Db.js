@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const MONGO_URI = `mongodb+srv://jenish:JfofIxVhvJ0ozEnz@cluster0.aoswjix.mongodb.net/chatapp_socket_io?retryWrites=true&w=majority&appName=Cluster0`
+const MONGO_URI = process.env.MONGO_URI;
 
 const MongoDbConnection = () => {
     try {

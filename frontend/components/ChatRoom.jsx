@@ -304,20 +304,21 @@ const ChatRoom = () => {
                 msg.sender === username ? "own" : "other"
               }`}
             >
-              <div className="message-bubble">{msg.message}</div>
 
               <div className="message-sender">
-                {msg.sender} <br />
+                <span style={{ fontWeight: "bold", paddingRight: "5px" }}>
+                  {msg.sender === username ? "You" : msg.sender}:
+                  </span>
                 <span className="message-time">
                   {msg.timestamp
                     ? new Date(msg.timestamp).toLocaleTimeString([], {
                         hour: "2-digit",
                         minute: "2-digit",
-                        second: "2-digit",
                       })
                     : ""}
                 </span>
               </div>
+              <div className="message-bubble">{msg.message}</div>
             </div>
           ))}
           <div ref={messagesEndRef} />
