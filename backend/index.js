@@ -5,7 +5,11 @@ const cors = require('cors');
 
 const app = express();
 app.use(cors());
+app.use(express.json());
 const server = http.createServer(app);
+
+//env variables
+require('dotenv').config(); // Load environment variables from .env file
 
 
 //database connection
@@ -75,13 +79,13 @@ io.on("connection", (socket) => {
 
   //for message model
   socket.on("send_message", async (data) => {
-    // Sav e message to DB
+    // Save message to DB
     await Message.create(data);
 
     // Emit message to all users in the group. 
     if (data.group) {
       const group = await Group.findOne({ name: data.group });
-      console.log("Group found:", group);
+      // console.log("Group found:", group);
       if (group) {
         Object.entries(users).forEach(([id, uname]) => {
           if (group.members.includes(uname)) {
@@ -110,5 +114,10 @@ io.on("connection", (socket) => {
   });
 
 });
+
+
+//router
+const authRoutes = require('./routes/auth'); 
+app.use('/api/auth', authRoutes);
 
 server.listen(5000, () => console.log('Server running on http://localhost:5000'));

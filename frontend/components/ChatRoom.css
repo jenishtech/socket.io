@@ -199,3 +199,13 @@
   background: #e6f0fa;
   color: #4a90e2;
 }
+
+.message-sender {
+  font-size: 0.8rem;
+  color: #555;
+}
+
+.message-time {
+  font-size: 0.7rem;
+  color: #999;
+}

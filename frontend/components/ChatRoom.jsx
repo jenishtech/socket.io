@@ -22,18 +22,6 @@ const ChatRoom = () => {
   const messagesEndRef = useRef(null);
   const [selectedGroupMembers, setSelectedGroupMembers] = useState([]);
 
-  // Prompt for username
-  useEffect(() => {
-    if (!username || username.trim() === "" || username === "null") {
-      let name = "";
-      while (!name) {
-        name = prompt("Enter your name:")?.trim();
-      }
-      setUsername(name);
-      localStorage.setItem("username", name);
-    }
-  }, [username]);
-
   // Send join event
   useEffect(() => {
     if (username) {
@@ -55,7 +43,11 @@ const ChatRoom = () => {
       setChatLog(msgs);
     });
 
+    // Listen for new messages
     socket.on("receive_message", (data) => {
+      console.log("Message received:", data);
+
+      //if message is from a group
       if (data.group) {
         setGroupChats((prev) => {
           const updated = { ...prev };
@@ -63,7 +55,10 @@ const ChatRoom = () => {
           updated[data.group] = [...updated[data.group], data];
           return updated;
         });
-      } else if (data.to && data.to !== "All") {
+      }
+
+      //if message is private
+      else if (data.to && data.to !== "All") {
         const chatKey = data.sender === username ? data.to : data.sender;
         setPrivateChats((prev) => {
           const updated = { ...prev };
@@ -79,7 +74,10 @@ const ChatRoom = () => {
           }
           return updated;
         });
-      } else {
+      }
+
+      //if message is public
+      else {
         setChatLog((prev) => {
           // Prevent duplicate message if already optimistically added
           if (
@@ -132,13 +130,20 @@ const ChatRoom = () => {
   // Send message
   const sendMessage = () => {
     if (message.trim() !== "") {
+      const timestamp = new Date().toISOString();
       let msgData;
+
       if (selectedGroup) {
-        msgData = { message, sender: username, group: selectedGroup };
-        socket.emit("send_message", msgData);
+        msgData = {
+          message,
+          sender: username,
+          group: selectedGroup,
+          timestamp,
+        };
+        socket.emit("send_message", msgData); // don't add locally, wait for server
       } else if (selectedUser) {
-        msgData = { message, sender: username, to: selectedUser };
-        // Optimistically add message for sender
+        msgData = { message, sender: username, to: selectedUser, timestamp };
+        // Optimistically add for sender
         setPrivateChats((prev) => {
           const updated = { ...prev };
           const chatKey = selectedUser;
@@ -148,7 +153,7 @@ const ChatRoom = () => {
         });
         socket.emit("send_message", msgData);
       } else {
-        msgData = { message, sender: username, to: "All" };
+        msgData = { message, sender: username, to: "All", timestamp };
         setChatLog((prev) => [...prev, msgData]);
         socket.emit("send_message", msgData);
       }
@@ -166,6 +171,7 @@ const ChatRoom = () => {
     setNewGroupName("");
     setNewGroupMembers([]);
     setShowGroupForm(false);
+    alert("Group created successfully!");
   };
 
   return (
@@ -186,20 +192,20 @@ const ChatRoom = () => {
           >
             <span>Public Chat</span>
           </div>
-         <div>
-           {users.map((user) => (
-            <div
-              key={user}
-              className={`wa-user ${selectedUser === user ? "active" : ""}`}
-              onClick={() => {
-                setSelectedUser(user);
-                setSelectedGroup(null);
-              }}
-            >
-              <span>{user}</span>
-            </div>
-          ))}
-         </div>
+          <div>
+            {users.map((user) => (
+              <div
+                key={user}
+                className={`wa-user ${selectedUser === user ? "active" : ""}`}
+                onClick={() => {
+                  setSelectedUser(user);
+                  setSelectedGroup(null);
+                }}
+              >
+                <span>{user}</span>
+              </div>
+            ))}
+          </div>
           <div className="wa-group-section">
             <div className="wa-group-title">
               <span>Groups</span>
@@ -275,11 +281,11 @@ const ChatRoom = () => {
               </div>
             </div>
           ) : selectedUser ? (
-          <>
-            <div style={{ display: "flex", alignItems: "center" }}>
-              Chat with : <h4>{selectedUser}</h4>
-            </div>
-          </>
+            <>
+              <div style={{ display: "flex", alignItems: "center" }}>
+                Chat with : <h4>{selectedUser}</h4>
+              </div>
+            </>
           ) : (
             "🗨️ Public Chat Room"
           )}
@@ -298,16 +304,20 @@ const ChatRoom = () => {
                 msg.sender === username ? "own" : "other"
               }`}
             >
-              <div className="message-bubble">
-                {selectedGroup && (
-                  <span className="private-label">[Group]</span>
-                )}
-                {selectedUser && (
-                  <span className="private-label">[Private]</span>
-                )}
-                {msg.message}
+              <div className="message-bubble">{msg.message}</div>
+
+              <div className="message-sender">
+                {msg.sender} <br />
+                <span className="message-time">
+                  {msg.timestamp
+                    ? new Date(msg.timestamp).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                      })
+                    : ""}
+                </span>
               </div>
-              <div className="message-sender">{msg.sender}</div>
             </div>
           ))}
           <div ref={messagesEndRef} />
