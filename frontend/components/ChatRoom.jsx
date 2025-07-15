@@ -130,30 +130,37 @@ const ChatRoom = () => {
   // Send message
   const sendMessage = () => {
     if (message.trim() !== "") {
-      const timestamp = new Date().toISOString();
       let msgData;
-
       if (selectedGroup) {
         msgData = {
           message,
           sender: username,
           group: selectedGroup,
-          timestamp,
+          timestamp: Date.now(),
         };
-        socket.emit("send_message", msgData); // don't add locally, wait for server
+        socket.emit("send_message", msgData);
       } else if (selectedUser) {
-        msgData = { message, sender: username, to: selectedUser, timestamp };
-        // Optimistically add for sender
+        msgData = {
+          message,
+          sender: username,
+          to: selectedUser,
+          timestamp: Date.now(),
+        };
+        // Optimistically add
         setPrivateChats((prev) => {
           const updated = { ...prev };
-          const chatKey = selectedUser;
-          if (!updated[chatKey]) updated[chatKey] = [];
-          updated[chatKey] = [...updated[chatKey], msgData];
+          if (!updated[selectedUser]) updated[selectedUser] = [];
+          updated[selectedUser] = [...updated[selectedUser], msgData];
           return updated;
         });
         socket.emit("send_message", msgData);
       } else {
-        msgData = { message, sender: username, to: "All", timestamp };
+        msgData = {
+          message,
+          sender: username,
+          to: "All",
+          timestamp: Date.now(),
+        };
         setChatLog((prev) => [...prev, msgData]);
         socket.emit("send_message", msgData);
       }
@@ -305,20 +312,18 @@ const ChatRoom = () => {
               }`}
             >
 
-              <div className="message-sender">
-                <span style={{ fontWeight: "bold", paddingRight: "5px" }}>
-                  {msg.sender === username ? "You" : msg.sender}:
-                  </span>
+              <div className="message-sender" style={{ fontWeight: "bold" }}>
+                {msg.sender}{" "}
                 <span className="message-time">
-                  {msg.timestamp
-                    ? new Date(msg.timestamp).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
-                    : ""}
+                  {new Date(msg.timestamp).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
                 </span>
               </div>
-              <div className="message-bubble">{msg.message}</div>
+
+              <div className="message-bubble" style={{ minWidth: "10%" , textAlign: "Right"}}>{msg.message}</div>
+
             </div>
           ))}
           <div ref={messagesEndRef} />
