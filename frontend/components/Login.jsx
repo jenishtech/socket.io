@@ -8,6 +8,9 @@ const Login = ({ onLogin }) => {
   const [password, setPassword] = useState("");
   const [isRegister, setIsRegister] = useState(false);
 
+  const API = import.meta.env.VITE_API_URL;
+  // console.log("API: ", API);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email.trim() || !password.trim() || (isRegister && !name.trim())) {
@@ -15,11 +18,11 @@ const Login = ({ onLogin }) => {
     }
     try {
       if (isRegister) {
-        await axios.post('http://localhost:5000/api/auth/register', { username: name, email, password });
+        await axios.post(`${API}/api/auth/register`, { username: name, email, password });
         alert('Registered successfully, now login!');
         setIsRegister(false);
       } else {
-        const res = await axios.post('http://localhost:5000/api/auth/login', { email, password });
+        const res = await axios.post(`${API}/api/auth/login`, { email, password });
         localStorage.setItem("username", res.data.username);
         localStorage.setItem("email", email);
         onLogin(res.data.username);

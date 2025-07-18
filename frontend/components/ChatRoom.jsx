@@ -2,7 +2,8 @@ import React, { useEffect, useState, useRef } from "react";
 import io from "socket.io-client";
 import "./ChatRoom.css";
 
-const socket = io("http://localhost:5000");
+const API = import.meta.env.VITE_API_URL;
+const socket = io(`${API}`);
 
 const ChatRoom = () => {
   const [username, setUsername] = useState(
@@ -21,6 +22,17 @@ const ChatRoom = () => {
   const [showGroupForm, setShowGroupForm] = useState(false);
   const messagesEndRef = useRef(null);
   const [selectedGroupMembers, setSelectedGroupMembers] = useState([]);
+  const [onlineUsers, setOnlineUsers] = useState([]);
+
+  useEffect(() => {
+    socket.on("online_users", (online) => {
+      setOnlineUsers(online);
+    });
+
+    return () => {
+      socket.off("online_users");
+    };
+  }, []);
 
   // Send join event
   useEffect(() => {
@@ -45,7 +57,7 @@ const ChatRoom = () => {
 
     // Listen for new messages
     socket.on("receive_message", (data) => {
-      console.log("Message received:", data);
+      // console.log("Message received:", data);
 
       //if message is from a group
       if (data.group) {
@@ -209,7 +221,21 @@ const ChatRoom = () => {
                   setSelectedGroup(null);
                 }}
               >
-                <span>{user}</span>
+                <span>
+                  {user}
+                  {onlineUsers.includes(user) && (
+                    <span
+                      style={{
+                        display: "inline-block",
+                        marginLeft: 5,
+                        width: 8,
+                        height: 8,
+                        backgroundColor: "green",
+                        borderRadius: "50%",
+                      }}
+                    ></span>
+                  )}
+                </span>
               </div>
             ))}
           </div>
@@ -311,7 +337,6 @@ const ChatRoom = () => {
                 msg.sender === username ? "own" : "other"
               }`}
             >
-
               <div className="message-sender" style={{ fontWeight: "bold" }}>
                 {msg.sender}{" "}
                 <span className="message-time">
@@ -322,8 +347,12 @@ const ChatRoom = () => {
                 </span>
               </div>
 
-              <div className="message-bubble" style={{ minWidth: "10%" , textAlign: "Right"}}>{msg.message}</div>
-
+              <div
+                className="message-bubble"
+                style={{ minWidth: "10%", textAlign: "right" }}
+              >
+                {msg.message}
+              </div>
             </div>
           ))}
           <div ref={messagesEndRef} />
